@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import './assets/global.css'
+import CrudCadastroContados from './components/CrudCadastroContados.vue'
 </script>
 
 <template>
-  <HelloWorld />
+  <CrudCadastroContados />
 </template>
