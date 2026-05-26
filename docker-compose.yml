@@ -1,0 +1,41 @@
+services:
+
+  # ─── Backend: Laravel (API REST) ────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agenda-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: "Sistema Agenda"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: sqlite
+    volumes:
+      # Persiste o banco SQLite fora do container (seus dados não somem ao reiniciar)
+      - ./backend/database/database.sqlite:/var/www/database/database.sqlite
+    networks:
+      - agenda-network
+
+  # ─── Frontend: Vue.js servido pelo Nginx ────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: agenda-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - agenda-network
+
+# ─── Rede interna entre os containers ─────────────────────────────────────────
+networks:
+  agenda-network:
+    driver: bridge
