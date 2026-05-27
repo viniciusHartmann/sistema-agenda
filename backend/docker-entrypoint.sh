@@ -3,7 +3,14 @@ set -e
 
 echo "==> Iniciando o backend Laravel..."
 
-# Gera a APP_KEY se não estiver definida
+# Cria o .env a partir do .env.example se não existir
+# (o .env não é commitado por segurança; o .env.example serve como template)
+if [ ! -f ".env" ]; then
+    echo "==> Criando .env a partir do .env.example..."
+    cp .env.example .env
+fi
+
+# Gera a APP_KEY se não estiver definida no .env
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
     echo "==> Gerando APP_KEY..."
     php artisan key:generate --force
