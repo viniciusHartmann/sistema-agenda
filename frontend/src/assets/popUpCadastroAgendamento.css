@@ -1,3 +1,15 @@
+.input-erro {
+  border-color: #e53e3e !important;
+  outline-color: #e53e3e !important;
+}
+
+.msg-erro {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: #e53e3e;
+}
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -70,6 +82,8 @@
   border: 1px solid #d0d0d0;
   border-radius: 8px;
   font-size: 0.95rem;
+  background: #fff;
+  color: #1a1a2e;
   transition: border-color 0.2s, box-shadow 0.2s;
   outline: none;
 }

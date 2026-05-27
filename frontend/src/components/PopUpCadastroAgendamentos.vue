@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import "../assets/popUpCadastroAgendamento.css"
 import type { Contato } from '../types/contato'
 
@@ -33,7 +33,24 @@ watch(
   }
 )
 
+const telefoneErro = computed(() => {
+  const digitos = form.value.telefone.replace(/\D/g, '')
+  return digitos.length > 0 && digitos.length < 11 ? 'Telefone incompleto — digite os 11 dígitos' : null
+})
+
+function mascaraTelefone(v: string): string {
+  return v.replace(/\D/g, '').slice(0, 11)
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2')
+}
+
+function onTelefoneInput(event: Event) {
+  const input = event.target as HTMLInputElement
+  input.value = form.value.telefone = mascaraTelefone(input.value)
+}
+
 function submitForm() {
+  if (telefoneErro.value) return
   emit('salvar', { ...form.value })
 }
 </script>
@@ -75,10 +92,14 @@ function submitForm() {
             <label for="telefone">Telefone</label>
             <input
               id="telefone"
-              v-model="form.telefone"
+              :value="form.telefone"
+              @input="onTelefoneInput"
               type="tel"
               placeholder="(00) 00000-0000"
+              maxlength="16"
+              :class="{ 'input-erro': telefoneErro }"
             />
+            <span v-if="telefoneErro" class="msg-erro">{{ telefoneErro }}</span>
           </div>
 
           <div class="campo">
