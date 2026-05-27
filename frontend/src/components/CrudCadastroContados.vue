@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Pencil, Trash2 } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
+import { Pencil, Trash2, AlertTriangle } from 'lucide-vue-next'
 import PopUpCadastroAgendamentos from './PopUpCadastroAgendamentos.vue'
 import type { Contato } from '../types/contato'
+import { useContatos } from '../composables/useContatos'
 import '../assets/crudCadastroContatos.css'
 
-// Lista de contatos (ficticia para mostrar como ficaria a lista)
-const contatos = ref<Contato[]>([
-  { id: 1, nome: 'João Silva', email: 'joao@email.com', telefone: '(11) 99999-1111', endereco: 'Rua das Flores, 10 - São Paulo' },
-  { id: 2, nome: 'Maria Souza', email: 'maria@email.com', telefone: '(21) 98888-2222', endereco: 'Av. Brasil, 500 - Rio de Janeiro' },
-])
-let proximoId = 3
+const { contatos, carregando, erro, carregarContatos, salvarContato, excluirContato } = useContatos()
+
+// Carrega os contatos da API ao montar o componente
+onMounted(carregarContatos)
 
 // Popup de cadastro/edição
 const popupVisivel = ref(false)
@@ -30,16 +29,9 @@ function fecharPopup() {
   popupVisivel.value = false
 }
 
-function salvarContato(dados: Contato) {
-  if (dados.id) {
-    // Edição: substitui o contato na lista
-    const index = contatos.value.findIndex((c) => c.id === dados.id)
-    if (index !== -1) contatos.value[index] = { ...dados }
-  } else {
-    // Novo: adiciona com ID gerado
-    contatos.value.push({ ...dados, id: proximoId++ })
-  }
-  popupVisivel.value = false
+async function aoSalvar(dados: Contato) {
+  const ok = await salvarContato(dados)
+  if (ok) popupVisivel.value = false
 }
 
 // Exclusão com confirmação
@@ -53,9 +45,9 @@ function cancelarExclusao() {
   contatoParaExcluir.value = null
 }
 
-function confirmarExclusao() {
-  if (!contatoParaExcluir.value) return
-  contatos.value = contatos.value.filter((c) => c.id !== contatoParaExcluir.value!.id)
+async function confirmarExclusao() {
+  if (!contatoParaExcluir.value?.id) return
+  await excluirContato(contatoParaExcluir.value.id)
   contatoParaExcluir.value = null
 }
 </script>
@@ -72,8 +64,20 @@ function confirmarExclusao() {
       <button class="btn btn-primario" @click="abrirNovo">+ Novo Contato</button>
     </header>
 
+    <!-- Estado de carregamento -->
+    <div v-if="carregando" class="vazio">
+      <p>Carregando contatos...</p>
+    </div>
+
+    <!-- Mensagem de erro -->
+    <div v-else-if="erro" class="vazio">
+      <AlertTriangle :size="40" />
+      <p>{{ erro }}</p>
+      <button class="btn btn-primario" @click="carregarContatos">Tentar novamente</button>
+    </div>
+
     <!-- Tabela de contatos -->
-    <div class="tabela-wrapper">
+    <div v-else class="tabela-wrapper">
       <table v-if="contatos.length > 0" class="tabela">
         <thead>
           <tr>
@@ -116,7 +120,7 @@ function confirmarExclusao() {
   <PopUpCadastroAgendamentos
     :visivel="popupVisivel"
     :contato="contatoSelecionado"
-    @salvar="salvarContato"
+    @salvar="aoSalvar"
     @fechar="fecharPopup"
   />
 
