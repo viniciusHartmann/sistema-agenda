@@ -4,6 +4,70 @@
   padding: 2rem 1rem;
 }
 
+/* Paginação */
+.tabela-atualizando {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f0f0f5;
+  font-size: 0.85rem;
+  color: #555;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.por-pagina {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.por-pagina select {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+}
+
+.paginas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-pagina {
+  background: #f0f0f5;
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.btn-pagina:hover:not(:disabled) {
+  background: #e0e0ea;
+}
+
+.btn-pagina:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* Cabeçalho */
 .cabecalho {
   display: flex;

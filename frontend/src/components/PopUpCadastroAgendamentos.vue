@@ -3,9 +3,12 @@ import { ref, watch, computed } from 'vue'
 import "../assets/popUpCadastroAgendamento.css"
 import type { Contato } from '../types/contato'
 
+import type { ErrosValidacao } from '../composables/useContatos'
+
 const props = defineProps<{
   visivel: boolean
   contato: Contato | null
+  errosServidor?: ErrosValidacao
 }>()
 
 const emit = defineEmits<{
@@ -22,6 +25,15 @@ const form = ref<Contato>({
 
 const formVazio = (): Contato => ({ nome: '', email: '', telefone: '', endereco: '' })
 
+watch(
+  () => props.errosServidor,
+  (erros) => {
+    if (erros && Object.keys(erros).length > 0) {
+      enviando.value = false
+    }
+  }
+)
+
 // Sempre que o popup ABRE (visivel muda para true), preenche ou limpa o form.
 // Observar "visivel" garante que o form seja reiniciado mesmo que "contato" não mude.
 watch(
@@ -29,9 +41,12 @@ watch(
   (aberto) => {
     if (aberto) {
       form.value = props.contato ? { ...props.contato } : formVazio()
+      enviando.value = false
     }
   }
 )
+
+const enviando = ref(false)
 
 const telefoneErro = computed(() => {
   const digitos = form.value.telefone.replace(/\D/g, '')
@@ -50,7 +65,8 @@ function onTelefoneInput(event: Event) {
 }
 
 function submitForm() {
-  if (telefoneErro.value) return
+  if (telefoneErro.value || enviando.value) return
+  enviando.value = true
   emit('salvar', { ...form.value })
 }
 </script>
@@ -76,6 +92,7 @@ function submitForm() {
               required
               autofocus
             />
+            <span v-if="props.errosServidor?.nome" class="msg-erro">{{ props.errosServidor.nome[0] }}</span>
           </div>
 
           <div class="campo">
@@ -86,6 +103,7 @@ function submitForm() {
               type="email"
               placeholder="email@exemplo.com"
             />
+            <span v-if="props.errosServidor?.email" class="msg-erro">{{ props.errosServidor.email[0] }}</span>
           </div>
 
           <div class="campo">
@@ -116,8 +134,8 @@ function submitForm() {
             <button type="button" class="btn btn-secundario" @click="emit('fechar')">
               Cancelar
             </button>
-            <button type="submit" class="btn btn-primario">
-              {{ contato?.id ? 'Salvar alterações' : 'Cadastrar' }}
+            <button type="submit" class="btn btn-primario" :disabled="enviando">
+              {{ enviando ? 'Aguarde...' : (contato?.id ? 'Salvar alterações' : 'Cadastrar') }}
             </button>
           </div>
         </form>

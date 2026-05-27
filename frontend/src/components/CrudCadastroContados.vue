@@ -2,26 +2,32 @@
 import { ref, onMounted } from 'vue'
 import { Pencil, Trash2, AlertTriangle } from 'lucide-vue-next'
 import PopUpCadastroAgendamentos from './PopUpCadastroAgendamentos.vue'
+import ToastContainer from './ToastContainer.vue'
 import type { Contato } from '../types/contato'
+import type { ErrosValidacao } from '../composables/useContatos'
 import { useContatos } from '../composables/useContatos'
+import { useToast } from '../composables/useToast'
 import '../assets/crudCadastroContatos.css'
 
-const { contatos, carregando, erro, carregarContatos, salvarContato, excluirContato } = useContatos()
+const { contatos, carregando, erro, paginacao, carregarContatos, salvarContato, excluirContato, irParaPagina, mudarPorPagina } = useContatos()
+const { addToast } = useToast()
 
-// Carrega os contatos da API ao montar o componente
 onMounted(carregarContatos)
 
 // Popup de cadastro/edição
 const popupVisivel = ref(false)
 const contatoSelecionado = ref<Contato | null>(null)
+const errosServidor = ref<ErrosValidacao>({})
 
 function abrirNovo() {
   contatoSelecionado.value = null
+  errosServidor.value = {}
   popupVisivel.value = true
 }
 
 function abrirEdicao(contato: Contato) {
   contatoSelecionado.value = { ...contato }
+  errosServidor.value = {}
   popupVisivel.value = true
 }
 
@@ -30,8 +36,13 @@ function fecharPopup() {
 }
 
 async function aoSalvar(dados: Contato) {
-  const ok = await salvarContato(dados)
-  if (ok) popupVisivel.value = false
+  const { ok, erros } = await salvarContato(dados)
+  if (ok) {
+    popupVisivel.value = false
+    addToast(dados.id ? 'Contato atualizado com sucesso!' : 'Contato cadastrado com sucesso!')
+  } else if (erros) {
+    errosServidor.value = erros
+  }
 }
 
 // Exclusão com confirmação
@@ -47,8 +58,10 @@ function cancelarExclusao() {
 
 async function confirmarExclusao() {
   if (!contatoParaExcluir.value?.id) return
-  await excluirContato(contatoParaExcluir.value.id)
+  const nome = contatoParaExcluir.value.nome
+  const ok = await excluirContato(contatoParaExcluir.value.id)
   contatoParaExcluir.value = null
+  if (ok) addToast(`O contato "${nome}" foi excluído.`, 'aviso')
 }
 </script>
 
@@ -64,20 +77,20 @@ async function confirmarExclusao() {
       <button class="btn btn-primario" @click="abrirNovo">+ Novo Contato</button>
     </header>
 
-    <!-- Estado de carregamento -->
-    <div v-if="carregando" class="vazio">
+    <!-- Estado de carregamento INICIAL (sem dados ainda) -->
+    <div v-if="carregando && contatos.length === 0" class="vazio">
       <p>Carregando contatos...</p>
     </div>
 
     <!-- Mensagem de erro -->
-    <div v-else-if="erro" class="vazio">
+    <div v-else-if="erro && contatos.length === 0" class="vazio">
       <AlertTriangle :size="40" />
       <p>{{ erro }}</p>
-      <button class="btn btn-primario" @click="carregarContatos">Tentar novamente</button>
+      <button class="btn btn-primario" @click="() => carregarContatos()">Tentar novamente</button>
     </div>
 
-    <!-- Tabela de contatos -->
-    <div v-else class="tabela-wrapper">
+    <!-- Tabela de contatos (permanece visível durante refreshes) -->
+    <div v-else class="tabela-wrapper" :class="{ 'tabela-atualizando': carregando }">
       <table v-if="contatos.length > 0" class="tabela">
         <thead>
           <tr>
@@ -112,6 +125,27 @@ async function confirmarExclusao() {
         <p>Nenhum contato cadastrado ainda.</p>
         <button class="btn btn-primario" @click="abrirNovo">Cadastrar primeiro contato</button>
       </div>
+
+      <!-- Paginação -->
+      <div v-if="paginacao.total > 0" class="paginacao">
+        <div class="por-pagina">
+          <span>Exibir</span>
+          <select
+            :value="paginacao.porPagina"
+            @change="mudarPorPagina(+($event.target as HTMLSelectElement).value)"
+          >
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="15">15</option>
+          </select>
+          <span>por página &nbsp;·&nbsp; {{ paginacao.total }} contato(s)</span>
+        </div>
+        <div class="paginas" v-if="paginacao.ultimaPagina > 1">
+          <button class="btn-pagina" :disabled="paginacao.paginaAtual === 1" @click="irParaPagina(paginacao.paginaAtual - 1)">‹</button>
+          <span>{{ paginacao.paginaAtual }} / {{ paginacao.ultimaPagina }}</span>
+          <button class="btn-pagina" :disabled="paginacao.paginaAtual === paginacao.ultimaPagina" @click="irParaPagina(paginacao.paginaAtual + 1)">›</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -120,6 +154,7 @@ async function confirmarExclusao() {
   <PopUpCadastroAgendamentos
     :visivel="popupVisivel"
     :contato="contatoSelecionado"
+    :erros-servidor="errosServidor"
     @salvar="aoSalvar"
     @fechar="fecharPopup"
   />
@@ -141,5 +176,7 @@ async function confirmarExclusao() {
       </div>
     </div>
   </Transition>
+
+  <ToastContainer />
 </template>
 

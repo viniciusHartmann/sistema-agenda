@@ -17,12 +17,20 @@ class ContatoController extends Controller
     }
 
     /**
-     * GET /api/contatos
-     * Lista todos os contatos da sessão.
+     * GET /api/contatos?pagina=1&por_pagina=5
+     * Lista os contatos da sessão com paginação.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $contatos = Contato::where('session_id', $this->sessionId())->get();
+        //Exibe 3 tipos de paginação para que o usuário escolha.
+        $porPagina = in_array((int) $request->query('por_pagina'), [5, 10, 15])
+            ? (int) $request->query('por_pagina')
+            : 5;
+
+        $pagina = max(1, (int) $request->query('pagina', 1));
+
+        $contatos = Contato::where('session_id', $this->sessionId())
+            ->paginate($porPagina, ['*'], 'page', $pagina);
 
         return response()->json($contatos);
     }
